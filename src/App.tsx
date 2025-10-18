@@ -1,8 +1,10 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import type { Message, Colors } from './types';
-import { Typography, Box, Container, Card, CardContent, 
-        Paper, TextField, Stack, Button, useTheme } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
+import { Typography, Box, Container, Card, CardContent, CardActions,
+        Paper, TextField, Chip, Divider, Stack, Button, useTheme } from '@mui/material';
+import {Send as SendIcon, Delete as DeleteIcon, Translate } from '@mui/icons-material';
+import {v4 as uuidv4} from 'uuid';
+
 import './App.css'
 
 // 大文字である理由は、これが定数であることを宣言するため
@@ -23,14 +25,14 @@ function App() {
       return `${MAX_MESSAGE_LENGTH}文字以内で入力してください`;
     }
 
-    return 'OK';
+    return '';
   };
 
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
   }
 
-  const handlePost = (e: FormEvent<HTMLFormElement>) =>{
+  const handlePost = useCallback((e: FormEvent<HTMLFormElement>) =>{
     e.preventDefault();
     const errorMessage = validateMessage(text);
     if(errorMessage){
@@ -39,15 +41,15 @@ function App() {
     }
 
     const newMessage: Message={
-      id: Date.now(),
+      id: uuidv4(),
       text:text,
       date:new Date().toLocaleString(),
     };
 
-    setMessages([...messages,newMessage]);
+    setMessages([newMessage, ...messages]); //投稿欄との兼ね合いによって位置関係を考える
     setText('');
 
-  };
+  },[text]);
 
   const theme = useTheme();
   const colors: Colors = {
@@ -55,6 +57,25 @@ function App() {
     surface: theme.palette.background.paper,
     gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
   }; 
+
+  const formatRelativeTime = useCallback((date: string): string =>{
+    const now = new Date();
+    const messageDate = new Date(date);
+    const diffInMinutes = Math.floor(
+      (now.getTime() - messageDate.getTime()) / (1000 * 60),
+    );
+
+    if(diffInMinutes < 1) return 'たった今';
+    if(diffInMinutes < 60) return `${diffInMinutes}分前`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if( diffInHours < 24) return `${diffInHours}時間前`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if( diffInDays < 7) return `${diffInDays}日前`;
+
+    return messageDate.toLocaleDateString();
+  },[]);
 
   return (
     <Box sx={{minHeight: '100vh', p:{xs: 2,sm: 3}}}>
@@ -139,22 +160,64 @@ function App() {
         </form>
       </Paper>
       
-      <Card sx={{minHeight: '500px'}}>
-        <CardContent>
-            <Typography variant="h6" gutterBottom>
-              チャットエリア(準備中)
-            </Typography>
-
-          <Paper
-          sx={{
-            p:3, textAlign:'center', backgroundColor: 'grey.50'
+      {/*メッセージリスト*/}
+      <Stack spacing={{ xs:2,sm:3}}>
+        { messages.length === 0?(
+          <Paper elevation={1} sx={{
+            p:4,
+            background: 'rgba(255,255,255,0.7)',
+            borderRadius: 3,
           }}>
-            <Typography color="text.secondary">
-              メッセージがここに表示されます
-            </Typography>
+            <Typography variant="h6" sx={{mb: 1}}>メッセージがありません。</Typography>
+            <Typography variant="body2">上のフォームから最初のメッセージを投稿しましょう!</Typography>
           </Paper>
-        </CardContent>
-      </Card>
+        ):(
+          <>
+            <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
+              {messages.length}件のメッセージがあります
+            </Typography>
+            {
+              messages.map((message: Message)=>(
+                <Card key ={message.id} elevation={3} 
+                      sx={{
+                        borderRadius: {xs:2 , sm:3},
+                        overflow: 'hidden',
+                        background:colors.surface,
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(59, 130, 246, 0.1)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: '0 12px 30px rgba(59, 130, 246, 0.15)',
+                        }
+                        }}>
+                  <CardContent sx={{p:{xs:2, sm:3}}}>
+                    <Box sx={{mb: 2}}>
+                      <Chip label={formatRelativeTime(message.date)} variant="outlined" size="small"
+                      sx={{
+                        height: 24,
+                        fontSize: '0.75rem',
+                        color: colors.primary,
+                        borderColor:colors.primary,
+                        backgroundColor:'rgba(59, 130, 246, 0.05)',
+                      }}/>
+                    </Box>
+                    <Typography variant="body1"
+                                sx={{
+                                  lineHeight: 1.7,
+                                  color: '#1f2937',
+                                  fontSize: { xs: '0.95rem', sm: '1rem' },
+                                  fontWeight: 400,}}>
+                      {message.text}
+                    </Typography>
+                    </CardContent>
+                </Card>
+              ))}
+          </>
+        )
+        }
+        </Stack>
+
     </Container>
     </Box>
   )
