@@ -109,7 +109,7 @@ function App() {
         </Typography>
       
         <Typography variant="subtitle1" sx ={{fontsize:{xs: '0.9rem', md:'1rem'}}} >
-          今の気持ちをシェアしよう
+          今の気持ちをシェアしよう!!
         </Typography>
       </Box>
       </Paper>
