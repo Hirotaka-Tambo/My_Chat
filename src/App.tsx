@@ -60,12 +60,11 @@ function App() {
     setText(e.target.value);
   }
 
-  const handlePost = useCallback((e:ChangeEvent<HTMLInputElement>) =>{
+  const handlePost = useCallback((e:ChangeEvent<HTMLFormElement>) =>{
     e.preventDefault();
     const errorMessage = validateMessage(text);
     if(errorMessage){
       alert(errorMessage);
-      e.target.value = '';
       return;
     }
 
@@ -218,7 +217,7 @@ function App() {
                 }}
             />
             <Box sx={{
-              dispalay: 'flex',
+              display: 'flex',
               gap: 2,
               alignItems: 'center',
               flexDirection: {xs: 'column', sm: 'row'},
