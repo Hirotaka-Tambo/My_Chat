@@ -1,8 +1,8 @@
 import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import type { Message, Colors } from './types';
 import { Typography, Box, Container, Card, CardContent, CardActions,
-        Paper, TextField, Chip, Divider, Stack, Button, useTheme } from '@mui/material';
-import {Send as SendIcon, Delete as DeleteIcon, Translate } from '@mui/icons-material';
+        Paper, TextField, Chip, Divider, Stack,Fab, Button, useTheme } from '@mui/material';
+import {Send as SendIcon, Delete as DeleteIcon, Image as ImageIcon } from '@mui/icons-material';
 import {v4 as uuidv4} from 'uuid';
 
 import './App.css'
@@ -10,11 +10,19 @@ import './App.css'
 // 大文字である理由は、これが定数であることを宣言するため
 const MAX_MESSAGE_LENGTH = 500;
 
+// 画像ファイルの容量の制限
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
+
+// 画像ファイル名の長さの制限
+const MAX_FILENAME_LENGTH = 100;
+
 function App() {
 
   const [text, setText] = useState<string>('');
   // リストのため、配列として所持する
   const [messages, setMessages] = useState<Message[]>([]);
+  const[isPosting, setIsposting] = useState<boolean>(false);
+  const[image, setImage] = useState<File | null>(null);
 
   const validateMessage = (text: string): string=>{
     if(!text.trim()){
@@ -28,18 +36,42 @@ function App() {
     return '';
   };
 
+  const validateImage = (file:File): string=>{
+    const allowTypes = ['image/png', 'image/jpg', 'image/jpeg', 'image/gif'];
+
+    // ファイルのMIMEタイプをチェック
+    if(!allowTypes.includes(file.type)){
+      return 'PNG, JPG, JPEG, GIF ファイルのみアプロード可能です';
+    }
+    // ファイルサイズの検証
+    if(file.size > MAX_FILE_SIZE){
+      return `ファイルサイズが大きすぎます (${MAX_FILE_SIZE}MB以下にしてください)`;
+    }
+
+    // ファイル名の長さの検証
+    if(file.name.length > MAX_FILENAME_LENGTH){
+      return `ファイル名が長すぎます (${MAX_FILENAME_LENGTH}文字以内にしてください)`;
+    }
+
+    return '';
+  }
+
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
   }
 
-  const handlePost = useCallback((e: FormEvent<HTMLFormElement>) =>{
+  const handlePost = useCallback((e:ChangeEvent<HTMLInputElement>) =>{
     e.preventDefault();
     const errorMessage = validateMessage(text);
     if(errorMessage){
       alert(errorMessage);
+      e.target.value = '';
       return;
     }
 
+    setIsposting(true);
+
+    try{
     const newMessage: Message={
       id: uuidv4(),
       text:text,
@@ -48,6 +80,13 @@ function App() {
 
     setMessages([newMessage, ...messages]); //投稿欄との兼ね合いによって位置関係を考える
     setText('');
+  }catch(e){
+    // ToDO
+    console.log(e);
+  }finally{
+    setIsposting(false);
+  }
+
 
   },[text]);
 
@@ -76,6 +115,36 @@ function App() {
 
     return messageDate.toLocaleDateString();
   },[]);
+
+  const handleDeleteMessage = useCallback((id:string): void=>{
+    const targetMessage = messages.find((message) => message.id === id)
+    if(!targetMessage) return;
+
+    const previewText = targetMessage.text.length > 20
+    ? targetMessage.text.substring(0, 20) + '...'
+    : targetMessage.text;
+
+    if(window.confirm(`「${previewText}」を削除しますか?`)){
+      setMessages((prev) => prev.filter((message) => message.id !== id));
+    }
+  },
+  [messages],
+);
+
+  const handleSelectImage = useCallback((e: ChangeEvent<HTMLInputElement>) =>{
+    const file = e.target.files?.[0];
+    if(file){
+      const errorMessage = validateImage(file);
+      if(errorMessage){
+        alert(errorMessage);
+        return;
+      }
+
+      setImage(file);
+    }
+  },[],);
+
+  
 
   return (
     <Box sx={{minHeight: '100vh', p:{xs: 2,sm: 3}}}>
@@ -148,14 +217,42 @@ function App() {
                   },
                 }}
             />
+            <Box sx={{
+              dispalay: 'flex',
+              gap: 2,
+              alignItems: 'center',
+              flexDirection: {xs: 'column', sm: 'row'},
+            }}>
+            {/*画像送信部分*/}
             <Button
-            type="submit"
-            variant="contained"
-            endIcon = {<SendIcon/>}
-            disabled= {!text.trim()}
-            >
-              送信
+                  variant="outlined"
+                  component = "label"
+                  startIcon = {<ImageIcon />}
+                  sx = {{
+                    flex: 1,
+                    width: {xs: '100%', sm: 'auto'},
+                    height: 48,
+                    borderRadius: 2,
+                  }}>
+              <input type ="file" hidden 
+              accept="image/png, image/jpg, image/jpeg, image/gif"
+              onChange = {handleSelectImage}/>
             </Button>
+
+            {/*送信ボタン */}
+            <Fab
+            type="submit"
+            size = "large"
+            color = "primary"
+            disabled= {!text.trim() || isPosting}
+            sx={{
+              transition: 'all 0.3s ease',
+              transform: text.trim() && 'scale(1.05)',
+            }}
+            >
+              <SendIcon />
+            </Fab>
+            </Box>
           </Stack>
         </form>
       </Paper>
@@ -211,6 +308,24 @@ function App() {
                       {message.text}
                     </Typography>
                     </CardContent>
+
+                    <Divider />
+
+                    <CardActions sx={{
+                      justifyContent: 'flex-end',
+                      p: {xs:1.5, sm:2}
+                    }}>
+                      <Button color="error" size = "small" startIcon = {<DeleteIcon />}
+                              onClick ={() => handleDeleteMessage(message.id)}
+                              sx={{
+                                borderRadius: 2,
+                                '&:hover': {
+                                  backgroundColor: 'rgba(244,67,54,0.08)',
+                                }
+                              }}>
+                        削除
+                      </Button>
+                    </CardActions>
                 </Card>
               ))}
           </>
