@@ -58,6 +58,7 @@ function App() {
 
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
+    
   }
 
   const handlePost = useCallback((e:ChangeEvent<HTMLFormElement>) =>{
