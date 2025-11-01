@@ -1,11 +1,12 @@
-import { useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
-import type { Message, Colors } from './types';
+import { useEffect, useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
 import { Typography, Box, Container, Card, CardContent, CardActions,
         Paper, TextField, Chip, Divider, Stack,Fab, Button, useTheme } from '@mui/material';
 import {Send as SendIcon, Delete as DeleteIcon, Image as ImageIcon } from '@mui/icons-material';
 import {v4 as uuidv4} from 'uuid';
 
+import Dexie from 'dexie';
 import './App.css'
+import type { Message, Colors } from './types';
 
 // 大文字である理由は、これが定数であることを宣言するため
 const MAX_MESSAGE_LENGTH = 500;
@@ -15,6 +16,12 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
 
 // 画像ファイル名の長さの制限
 const MAX_FILENAME_LENGTH = 100;
+
+// dbを作成
+const db = new Dexie('ChatApp');
+db.version(1).stores({
+  messages: 'id, createdAt',
+});
 
 function App() {
 
@@ -61,7 +68,7 @@ function App() {
     
   }
 
-  const handlePost = useCallback((e:ChangeEvent<HTMLFormElement>) =>{
+  const handlePost = useCallback(async(e:ChangeEvent<HTMLFormElement>): Promise<void> =>{
     e.preventDefault();
     const errorMessage = validateMessage(text);
     if(errorMessage){
@@ -72,13 +79,24 @@ function App() {
     setIsposting(true);
 
     try{
-    const newMessage: Message={
-      id: uuidv4(),
-      text:text,
-      date:new Date().toLocaleString(),
+      const createdAt = new Date();
+      const dateString = createdAt.toLocaleDateString();
+      const imageData = image ? await readImageAsDataURL(image) : undefined;
+      const newMessage: Message={
+        id: uuidv4(),
+        text:text,
+        date: dateString,
+        image: imageData,
+        imageName : image?.name,
+        createdAt,
     };
 
+    // DBに保存
+    await db.messages.add(newMessage);
+
+    
     setMessages([newMessage, ...messages]); //投稿欄との兼ね合いによって位置関係を考える
+    setImage(null);
     setText('');
   }catch(e){
     // ToDO
@@ -87,8 +105,7 @@ function App() {
     setIsposting(false);
   }
 
-
-  },[text]);
+  },[text,image]);
 
   const theme = useTheme();
   const colors: Colors = {
@@ -144,7 +161,14 @@ function App() {
     }
   },[],);
 
-  
+  const readImageAsDataURL = (file: File): Promise<string> =>{
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    })
+  }
 
   return (
     <Box sx={{minHeight: '100vh', p:{xs: 2,sm: 3}}}>
@@ -217,6 +241,58 @@ function App() {
                   },
                 }}
             />
+            {
+              image &&(
+                <Paper 
+                elevation={2}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  border: '1px solid rgba(59, 130, 246, 0.1)',
+                }}
+                >
+                  <Typography variant="body2" color="text.secondary" sx={{mb:1}}>
+                    📸画像プレビュー
+                  </Typography>
+                  <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    width: '100%',
+                  }}>
+                    <Box component="img" alt="preview" src={URL.createObjectURL(image)}
+                    sx={{
+                      maxWidth: '80%',
+                      maxHeight: 200,
+                      objectFit: 'contain',
+                      borderRadius: 2,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    }}
+                    />
+                  </Box>
+                  <Box sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    mt: 2,
+                  }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {image.name}({Math.round(image.size / 1024)}KB)
+                    </Typography>
+                    <Button color="error" size="small" startIcon={<DeleteIcon />}
+                    onClick={() =>setImage(null)}
+                    sx={{
+                      borderRadius: 2,
+                      fontSize: {xs: '0.8rem', sm: '0.875rem'},
+                      '&:hover' : {
+                        backgroundColor: 'rgba(244,67, 54,0.08)',
+                      }
+                    }}>
+                      削除
+                    </Button>
+                  </Box>
+                </Paper>
+              )
+            }
             <Box sx={{
               display: 'flex',
               gap: 2,
@@ -237,6 +313,7 @@ function App() {
               <input type ="file" hidden 
               accept="image/png, image/jpg, image/jpeg, image/gif"
               onChange = {handleSelectImage}/>
+              画像を追加
             </Button>
 
             {/*送信ボタン */}
@@ -299,14 +376,41 @@ function App() {
                         backgroundColor:'rgba(59, 130, 246, 0.05)',
                       }}/>
                     </Box>
+                    {/*テキスト表示*/}
                     <Typography variant="body1"
                                 sx={{
                                   lineHeight: 1.7,
                                   color: '#1f2937',
                                   fontSize: { xs: '0.95rem', sm: '1rem' },
-                                  fontWeight: 400,}}>
+                                  fontWeight: 400,
+                                  mb: message.image ? 2 : 0,
+                                  }}>
                       {message.text}
                     </Typography>
+                    {/*画像表示*/}
+                    {message.image && (
+                      <Box sx ={{
+                        display: "flex",
+                        justifyContent: "center",
+                      }}>
+                        <Box component="img" alt={message.imageName}
+                        src = {message.image}
+                        sx={{
+                          maxWidth: '100%',
+                          maxHeight: 300,
+                          objectFit: "contain",
+                          borderRadius: 2,
+                          boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
+                          transition: 'transform 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.02)',
+                          },
+                        }}
+                          />
+
+                      </Box>
+                    )}
+
                     </CardContent>
 
                     <Divider />

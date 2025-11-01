@@ -3,6 +3,8 @@ export type Message={
     text: string;
     date: string;
     image?: string; // Base64 型のURLが格納される 
+    imageName?: string;
+    createdAt?: Date;
 };
 
 export type Colors={
