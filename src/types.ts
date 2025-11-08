@@ -11,4 +11,5 @@ export type Colors={
     primary: string;
     surface:string;
     gradient: string;
+    background: string;
 }

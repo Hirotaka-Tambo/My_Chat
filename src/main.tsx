@@ -14,7 +14,8 @@ const theme = createTheme({
       main: '#dc004e',
     },
     background:{
-      paper: 'rgba(255,255,255,0.95)'
+      default: '#F0F9FF',
+      paper: 'rgba(255,255,255,0.95)',
     }
   },
 })
