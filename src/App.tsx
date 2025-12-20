@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback, type ChangeEvent, type FormEvent } from 'react';
-import { Typography, Box, Container, Paper,  Stack, useTheme } from '@mui/material';
+import { Typography, Box, Container, useTheme } from '@mui/material';
 import {v4 as uuidv4} from 'uuid';
-
 import Dexie from 'dexie';
 import './App.css';
-import { MessageItem } from './components/MessageItem';
+import { MessageList } from './components/MessageList';
 import { MessageForm } from './components/MessageForm';
 import type { Message, Colors } from './types';
 
@@ -17,11 +16,21 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
 // 画像ファイル名の長さの制限
 const MAX_FILENAME_LENGTH = 100;
 
+
+class ChatDatabase extends Dexie {
+  messages!: Dexie.Table<Message, string>;
+
+  constructor() {
+    super('ChatApp');
+    this.version(1).stores({
+      messages: 'id, createdAt',
+    });
+  }
+}
+
+const db = new ChatDatabase();
+
 // dbを作成
-const db = new Dexie('ChatApp');
-db.version(1).stores({
-  messages: 'id, createdAt',
-});
 
 function App() {
 
@@ -51,7 +60,7 @@ function App() {
     
   }
 
-  const handlePost = useCallback(async(e:ChangeEvent<HTMLFormElement>): Promise<void> =>{
+  const handlePost = useCallback(async(e:FormEvent<HTMLFormElement>): Promise<void> =>{
     e.preventDefault();
     const errorMessage = validateMessage(text);
     if(errorMessage){
@@ -118,6 +127,29 @@ function App() {
 
   console.log(messages);
 
+  const handleSelectImage = (e: ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0] ?? null;
+
+  if (!file) {
+    setImage(null);
+    return;
+  }
+
+  // ファイルサイズ制限
+  if (file.size > MAX_FILE_SIZE) {
+    alert('ファイルサイズが大きすぎます');
+    return;
+  }
+
+  // ファイル名長さ制限
+  if (file.name.length > MAX_FILENAME_LENGTH) {
+    alert('ファイル名が長すぎます');
+    return;
+  }
+
+  setImage(file);
+};
+
   
   const handleDeleteMessage = useCallback(
     async(id:string): Promise<void>=>{
@@ -181,41 +213,19 @@ function App() {
       <MessageForm
       text={text}
       image={image}
+      colors ={colors}
       isPosting={isPosting}
       onSubmit={handlePost}
       onTextChange={handleTextChange}
       onSelectImage={handleSelectImage}
       onSetImage={setImage}
-      
-      {/*メッセージリスト*/}
-      Stack spacing={{ xs:2,sm:3}}>
-        { messages.length === 0?(
-          <Paper elevation={1} sx={{
-            p:4,
-            background: 'rgba(255,255,255,0.7)',
-            borderRadius: 3,
-          }}>
-            <Typography variant="h6" sx={{mb: 1}}>メッセージがありません。</Typography>
-            <Typography variant="body2">上のフォームから最初のメッセージを投稿しましょう!</Typography>
-          </Paper>
-        ):(
-          <>
-            <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
-              {messages.length}件のメッセージがあります
-            </Typography>
-            {
-              messages.map((message: Message)=>(
-                <MessageItem 
-                  key={message.id}
-                  message={message}
-                  onDelete={handleDeleteMessage}
-                />
-              ))}
-          </>
-        )
-        }
-        </Stack>
+      />
 
+        <MessageList
+        messages ={messages}
+        colors = {colors}
+        onDeleteMessage={handleDeleteMessage}
+        />
     </Container>
     </Box>
   )

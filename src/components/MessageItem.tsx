@@ -4,14 +4,15 @@ import {
     Chip,Divider,
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
-import type { Message } from '../types';
+import type { Message, Colors } from '../types';
 
 type MessageItemprops = {
     message: Message;
+    colors:Colors;
     onDelete: (id: string) => void;
 };
 
-export const MessageItem = ({ message, onDelete }: MessageItemprops) => {
+export const MessageItem = ({ message, colors, onDelete }: MessageItemprops) => {
 
     const formatRelativeTime = useCallback((date: string): string => {
         const now = new Date();
@@ -59,8 +60,8 @@ export const MessageItem = ({ message, onDelete }: MessageItemprops) => {
                         sx={{
                             height: 24,
                             fontSize: '0.75rem',
-                            // color: colors.primary,
-                            // borderColor: colors.primary,
+                            color: colors.primary,
+                            borderColor: colors.primary,
                             backgroundColor: 'rgba(59, 130, 246, 0.05)',
                         }}
                     />

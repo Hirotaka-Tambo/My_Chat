@@ -1,0 +1,47 @@
+import { Stack, Paper , Typography} from '@mui/material';
+import { MessageItem } from './MessageItem';
+import type { Message, Colors } from '../types';
+
+type MessageListProps = {
+    messages: Message[];
+    colors: Colors;
+    onDeleteMessage: (id: string) => void;
+}
+
+
+export const MessageList = ({
+    messages,
+    colors,
+    onDeleteMessage, 
+}:MessageListProps) =>{
+    return(
+        <Stack spacing={{ xs:2,sm:3}}>
+        { messages.length === 0?(
+            <Paper elevation={1} sx={{
+            p:4,
+            background: 'rgba(255,255,255,0.7)',
+            borderRadius: 3,
+        }}>
+            <Typography variant="h6" sx={{mb: 1}}>メッセージがありません。</Typography>
+            <Typography variant="body2">上のフォームから最初のメッセージを投稿しましょう!</Typography>
+            </Paper>
+        ):(
+        <>
+            <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
+                {messages.length}件のメッセージがあります
+            </Typography>
+            {
+            messages.map((message: Message)=>(
+                <MessageItem 
+                key={message.id}
+                message={message}
+                colors = {colors}
+                onDelete={onDeleteMessage}
+                />
+            ))}
+        </>
+        )
+        }
+        </Stack>
+    );
+}
