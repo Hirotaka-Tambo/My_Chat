@@ -5,14 +5,18 @@ import type { Message, Colors } from '../types';
 type MessageListProps = {
     messages: Message[];
     colors: Colors;
+    isEditing : boolean;
     onDeleteMessage: (id: string) => void;
+    onEditMessage: (id:string, newText: string) => void;
 }
 
 
 export const MessageList = ({
     messages,
     colors,
-    onDeleteMessage, 
+    isEditing,
+    onDeleteMessage,
+    onEditMessage
 }:MessageListProps) =>{
     return(
         <Stack spacing={{ xs:2,sm:3}}>
@@ -36,7 +40,9 @@ export const MessageList = ({
                 key={message.id}
                 message={message}
                 colors = {colors}
+                isEditing = {isEditing}
                 onDelete={onDeleteMessage}
+                onEdit={onEditMessage}
                 />
             ))}
         </>

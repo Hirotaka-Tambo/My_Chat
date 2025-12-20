@@ -1,18 +1,22 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
     Card,CardContent,CardActions,Typography,Button,Box,
-    Chip,Divider,
+    Chip,Divider,IconButton, TextField
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import {Delete as DeleteIcon, Edit as EditIcon, Check as CheckIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import type { Message, Colors } from '../types';
+
 
 type MessageItemprops = {
     message: Message;
     colors:Colors;
+    isEditing: boolean;
     onDelete: (id: string) => void;
+    onEdit: (id: string, newText: string) => void;
 };
 
-export const MessageItem = ({ message, colors, onDelete }: MessageItemprops) => {
+
+export const MessageItem = ({ message, colors, onDelete, isEditing, onEdit }: MessageItemprops) => {
 
     const formatRelativeTime = useCallback((date: string): string => {
         const now = new Date();
@@ -52,6 +56,20 @@ export const MessageItem = ({ message, colors, onDelete }: MessageItemprops) => 
             }}
         >
             <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                {
+                    isEditing &&(
+                        
+                        <Box>
+                            <IconButton size = "small" color = "primary">
+                                <CheckIcon />
+                            </IconButton>
+                            
+                            <IconButton size = "small">
+                                <EditIcon />
+                            </IconButton>
+                        </Box>
+                    )
+                }
                 <Box sx={{ mb: 2 }}>
                     <Chip
                         label={formatRelativeTime(message.date)}

@@ -16,7 +16,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
 // 画像ファイル名の長さの制限
 const MAX_FILENAME_LENGTH = 100;
 
-
 class ChatDatabase extends Dexie {
   messages!: Dexie.Table<Message, string>;
 
@@ -54,7 +53,6 @@ function App() {
     return '';
   };
 
-  
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
     
@@ -200,6 +198,39 @@ function App() {
     )
   }
 
+  // 下記はリファクタリング必須
+  const handleEditMessage = useCallback(
+  async (id: string, newText: string): Promise<void> => {
+    if (!newText.trim()) {
+      alert('内容を入力してください');
+      return;
+    }
+
+    try {
+      const updatedAt = new Date();
+
+      // DB 更新
+      await db.messages.update(id, {
+        text: newText,
+        updatedAt,
+      });
+
+      // state 更新
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === id
+            ? { ...message, text: newText, updatedAt }
+            : message
+        )
+      );
+    } catch (e) {
+      console.error('メッセージの更新に失敗しました', e);
+      alert('更新に失敗しました');
+    }
+  },
+  []
+);
+
   return (
     <Box sx={{minHeight: '100vh', p:{xs: 2,sm: 3}}}>
     <Container maxWidth='md' 
@@ -223,8 +254,10 @@ function App() {
 
         <MessageList
         messages ={messages}
+        isEditing={isEditing}
         colors = {colors}
         onDeleteMessage={handleDeleteMessage}
+        onEditMessage={handleEditMessage}
         />
     </Container>
     </Box>

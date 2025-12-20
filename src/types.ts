@@ -5,6 +5,7 @@ export type Message={
     image?: string; // Base64 型のURLが格納される 
     imageName?: string;
     createdAt?: Date;
+    updatedAt?: Date;
 };
 
 export type Colors={
