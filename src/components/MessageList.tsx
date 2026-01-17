@@ -1,26 +1,19 @@
+import type { ReactNode } from 'react';
 import { Stack, Paper , Typography} from '@mui/material';
-import { MessageItem } from './MessageItem';
-import type { Message, Colors } from '../types';
 
 type MessageListProps = {
-    messages: Message[];
-    colors: Colors;
-    isEditing : boolean;
-    onDeleteMessage: (id: string) => void;
-    onEditMessage: (id:string, newText: string) => void;
+    children: ReactNode;
 }
 
 
 export const MessageList = ({
-    messages,
-    colors,
-    isEditing,
-    onDeleteMessage,
-    onEditMessage
+    children
 }:MessageListProps) =>{
-    return(
-        <Stack spacing={{ xs:2,sm:3}}>
-        { messages.length === 0?(
+    const isEmpty = 
+    !children || (Array.isArray(children) && children.length === 0);
+
+    if(isEmpty){
+        return(
             <Paper elevation={1} sx={{
             p:4,
             background: 'rgba(255,255,255,0.7)',
@@ -29,25 +22,12 @@ export const MessageList = ({
             <Typography variant="h6" sx={{mb: 1}}>メッセージがありません。</Typography>
             <Typography variant="body2">上のフォームから最初のメッセージを投稿しましょう!</Typography>
             </Paper>
-        ):(
-        <>
-            <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
-                {messages.length}件のメッセージがあります
-            </Typography>
-            {
-            messages.map((message: Message)=>(
-                <MessageItem 
-                key={message.id}
-                message={message}
-                colors = {colors}
-                isEditing = {isEditing}
-                onDelete={onDeleteMessage}
-                onEdit={onEditMessage}
-                />
-            ))}
-        </>
-        )
-        }
+        );
+    }
+
+    return(
+        <Stack spacing={{ xs:2,sm:3}}>
+            {children}
         </Stack>
     );
 }

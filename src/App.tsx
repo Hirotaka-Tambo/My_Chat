@@ -5,16 +5,10 @@ import Dexie from 'dexie';
 import './App.css';
 import { MessageList } from './components/MessageList';
 import { MessageForm } from './components/MessageForm';
+import { MessageItem } from './components/MessageItem';
 import type { Message, Colors } from './types';
+import { validateImage, validateMessage } from './utils/Validation';
 
-// 大文字である理由は、これが定数であることを宣言するため
-const MAX_MESSAGE_LENGTH = 500;
-
-// 画像ファイルの容量の制限
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 5MB
-
-// 画像ファイル名の長さの制限
-const MAX_FILENAME_LENGTH = 100;
 
 class ChatDatabase extends Dexie {
   messages!: Dexie.Table<Message, string>;
@@ -41,17 +35,7 @@ function App() {
   const[isLoading, setIsLoading] = useState<boolean>(false);
   const[isEditing, setIsEditing]= useState<boolean>(false);
 
-  const validateMessage = (text: string): string=>{
-    if(!text.trim()){
-      return "内容を入力してください";
-    }
-
-    if(text.length > MAX_MESSAGE_LENGTH){
-      return `${MAX_MESSAGE_LENGTH}文字以内で入力してください`;
-    }
-
-    return '';
-  };
+  
 
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
@@ -85,7 +69,7 @@ function App() {
     await db.messages.add(newMessage);
 
     
-    setMessages([newMessage, ...messages]); //投稿欄との兼ね合いによって位置関係を考える
+    setMessages( prev =>[newMessage, ...prev]); //投稿欄との兼ね合いによって位置関係を考える
     setImage(null);
     setText('');
   }catch(e){
@@ -125,28 +109,19 @@ function App() {
 
   console.log(messages);
 
-  const handleSelectImage = (e: ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0] ?? null;
+  const handleSelectImage = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const errorMessage = validateImage(file);
+      if (errorMessage) {
+        alert(errorMessage);
+        return;
+      }
 
-  if (!file) {
-    setImage(null);
-    return;
-  }
-
-  // ファイルサイズ制限
-  if (file.size > MAX_FILE_SIZE) {
-    alert('ファイルサイズが大きすぎます');
-    return;
-  }
-
-  // ファイル名長さ制限
-  if (file.name.length > MAX_FILENAME_LENGTH) {
-    alert('ファイル名が長すぎます');
-    return;
-  }
-
-  setImage(file);
-};
+      e.target.value = '';
+      setImage(file);
+    }
+  }, []);
 
   
   const handleDeleteMessage = useCallback(
@@ -165,38 +140,20 @@ function App() {
       }catch(e){
         console.error('削除に失敗しました',e);
         alert('削除に失敗しました');
-
       }
-      setMessages((prev) => prev.filter((message) => message.id !== id));
     }
   },
   [messages],
 );
 
-  const readImageAsDataURL = (file: File): Promise<string> =>{
-    return new Promise((resolve, reject)=>{
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    })
-  }
-
-  if(isLoading){
-    return (
-      <Box sx={{
-        position: 'absolute',
-        top:0,
-        bottom:0,
-        left:0,
-        right:0,
-        background: colors.background,
-
-      }}>
-        <Typography variant="h6">読み込み中...</Typography>
-      </Box>
-    )
-  }
+  function readImageAsDataURL(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
   // 下記はリファクタリング必須
   const handleEditMessage = useCallback(
@@ -231,6 +188,39 @@ function App() {
   []
 );
 
+  const messageItems = messages.map((message: Message) => (
+    <div key={message.id}>
+      <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
+        {messages.length}件のメッセージがあります
+      </Typography>
+      <MessageItem 
+            key={message.id}
+            message={message}
+            colors = {colors}
+            isEditing = {isEditing}
+            onDeleteMessage={handleDeleteMessage}    
+            onEditMessage={handleEditMessage}
+      />               
+                      
+      </div>
+  ))
+
+  if(isLoading){
+    return (
+      <Box sx={{
+        position: 'absolute',
+        top:0,
+        bottom:0,
+        left:0,
+        right:0,
+        background: colors.background,
+
+      }}>
+        <Typography variant="h6">読み込み中...</Typography>
+      </Box>
+    )
+  }
+
   return (
     <Box sx={{minHeight: '100vh', p:{xs: 2,sm: 3}}}>
     <Container maxWidth='md' 
@@ -252,13 +242,9 @@ function App() {
       onSetImage={setImage}
       />
 
-        <MessageList
-        messages ={messages}
-        isEditing={isEditing}
-        colors = {colors}
-        onDeleteMessage={handleDeleteMessage}
-        onEditMessage={handleEditMessage}
-        />
+      <MessageList>{messageItems}</MessageList>
+
+
     </Container>
     </Box>
   )
