@@ -10,6 +10,7 @@ import {Box,Button,Card,
 } from '@mui/material';
 import {
     Delete as DeleteIcon,
+    Edit as EditIcon,
     Check as CheckIcon,
     Cancel as CancelIcon,
 } from '@mui/icons-material';
@@ -19,6 +20,11 @@ type MessageItemProps = {
     message: Message;
     colors: Colors;
     isEditing: boolean;
+    editText: string;
+    onEditTextChange: (text: string) => void;
+    onStartEdit: (id : string, text : string) => void;
+    onCancelEdit: () => void;
+    onSaveEdit: () => void;
     onDeleteMessage: (id: string) => void;
     onEditMessage: (id: string, newText: string) => void;
 };
@@ -27,6 +33,11 @@ export const MessageItem = ({
     message,
     colors,
     isEditing,
+    editText,
+    onEditTextChange,
+    onStartEdit,
+    onCancelEdit,
+    onSaveEdit,
     onDeleteMessage,
     onEditMessage,
 }: MessageItemProps) => {
@@ -152,6 +163,20 @@ return (
         p: { xs: 1.5, sm: 2 },
         }}
     >
+        {!isEditing && (
+            <Button
+            size="small"
+            color = "primary"
+            startIcon={<EditIcon />}
+            onClick={() => onStartEdit(message.id, message.text)}
+            sx = {{
+                borderRadius: 2,
+                fontSize: { xs: '0.8rem', sm:'0.875rem'},
+            }}
+            >
+                編集
+            </Button>
+        )}
         <Button
         color="error"
         size="small"

@@ -34,12 +34,11 @@ function App() {
   const[image, setImage] = useState<File | null>(null);
   const[isLoading, setIsLoading] = useState<boolean>(false);
   const[isEditing, setIsEditing]= useState<boolean>(false);
-
+  const[editingId, setEditingId] = useState<string | null>(null);
+  const[editingText, setEditingText] = useState<string>('');
   
-
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
-    
   }
 
   const handlePost = useCallback(async(e:FormEvent<HTMLFormElement>): Promise<void> =>{
@@ -63,6 +62,7 @@ function App() {
         image: imageData,
         imageName : image?.name,
         createdAt,
+        updatedAt: createdAt,
     };
 
     // DBに保存
@@ -123,7 +123,6 @@ function App() {
     }
   }, []);
 
-  
   const handleDeleteMessage = useCallback(
     async(id:string): Promise<void>=>{
     const targetMessage = messages.find((message) => message.id === id)
@@ -155,34 +154,51 @@ function App() {
   });
 }
 
+  // 編集開始ハンドラ
+  const handleStartEdit = useCallback((id: string, currentText: string) =>{
+    setEditingId(id);
+    setEditingText(currentText);
+  },[]);
+
+  // 編集キャンセルハンドラ
+  const handleCancelEdit = useCallback(() =>{
+    setEditingId(null);
+    setEditingText('');
+  },[]);
   // 下記はリファクタリング必須
-  const handleEditMessage = useCallback(
-  async (id: string, newText: string): Promise<void> => {
-    if (!newText.trim()) {
+  const handleSaveEdit = useCallback(
+  async (): Promise<void> => {
+    if (!editingId || !editingText.trim()) {
       alert('内容を入力してください');
       return;
     }
+
+    setIsPosting(true);
 
     try {
       const updatedAt = new Date();
 
       // DB 更新
-      await db.messages.update(id, {
-        text: newText,
-        updatedAt,
+      await db.messages.update(editingId, {
+        text: editingText,
+        updatedAt
       });
 
       // state 更新
       setMessages((prev) =>
         prev.map((message) =>
-          message.id === id
-            ? { ...message, text: newText, updatedAt }
-            : message
+          message.id === editingId
+            ? { ...message, text: editingText, updatedAt }
+            : message,
         )
       );
+
+      // 初期化
+      setEditingId(null);
+      setEditingText('');
+
     } catch (e) {
-      console.error('メッセージの更新に失敗しました', e);
-      alert('更新に失敗しました');
+      alert('編集に失敗しました・時間をおいて再度お試しください');
     }
   },
   []
@@ -196,10 +212,14 @@ function App() {
       <MessageItem 
             key={message.id}
             message={message}
-            colors = {colors}
-            isEditing = {isEditing}
-            onDeleteMessage={handleDeleteMessage}    
-            onEditMessage={handleEditMessage}
+            colors={colors}
+            isEditing={editingId === message.id}
+            editText={editingId === message.id ? editingText : message.text}
+            onEditTextChange={setEditingText}
+            onStartEdit={handleStartEdit}
+            onCancelEdit={handleCancelEdit}
+            onSaveEdit={handleSaveEdit}
+            onDelete={handleDeleteMessage}
       />               
                       
       </div>
