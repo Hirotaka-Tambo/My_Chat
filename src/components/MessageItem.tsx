@@ -20,26 +20,24 @@ type MessageItemProps = {
     message: Message;
     colors: Colors;
     isEditing: boolean;
-    editText: string;
+    editingText: string;
     onEditTextChange: (text: string) => void;
     onStartEdit: (id : string, text : string) => void;
     onCancelEdit: () => void;
     onSaveEdit: () => void;
     onDeleteMessage: (id: string) => void;
-    onEditMessage: (id: string, newText: string) => void;
 };
 
 export const MessageItem = ({
     message,
     colors,
     isEditing,
-    editText,
+    editingText,
     onEditTextChange,
     onStartEdit,
     onCancelEdit,
     onSaveEdit,
     onDeleteMessage,
-    onEditMessage,
 }: MessageItemProps) => {
     const formatRelativeTime = useCallback((date: string): string => {
     const now = new Date();
@@ -80,10 +78,10 @@ return (
     <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         {isEditing && (
         <Box>
-            <IconButton size="small" color="primary">
+            <IconButton size="small" color="primary" onClick={onSaveEdit}>
             <CheckIcon />
             </IconButton>
-            <IconButton size="small">
+            <IconButton size="small" onClick={onCancelEdit}>
             <CancelIcon />
             </IconButton>
         </Box>
@@ -96,7 +94,8 @@ return (
             multiline
             autoFocus
             rows={4}
-            onChange={(e) => onEditMessage(message.id, e.target.value)}
+            value={editingText}
+            onChange={(e) => onEditTextChange(e.target.value)}
         />
         ) : (
         <Typography
@@ -111,6 +110,9 @@ return (
             }}
         >
             {message.text}
+            <Typography variant="caption" sx = {{ color: 'gray'}}>
+                {message.updatedAt !== message.createdAt && '(編集済み)'}
+            </Typography>
         </Typography>
         )}
         <Box sx={{ mb: 2 }}>

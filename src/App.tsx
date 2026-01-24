@@ -6,8 +6,9 @@ import './App.css';
 import { MessageList } from './components/MessageList';
 import { MessageForm } from './components/MessageForm';
 import { MessageItem } from './components/MessageItem';
+import { SearchBar } from './components/SearchBar';
 import type { Message, Colors } from './types';
-import { validateImage, validateMessage } from './utils/Validation';
+import { validateImage, validateMessage } from './utils/validation';
 
 
 class ChatDatabase extends Dexie {
@@ -36,10 +37,17 @@ function App() {
   const[isEditing, setIsEditing]= useState<boolean>(false);
   const[editingId, setEditingId] = useState<string | null>(null);
   const[editingText, setEditingText] = useState<string>('');
+  const[searchText, setSearchText] = useState<string>('');
+
   
   const handleTextChange = (e:ChangeEvent<HTMLInputElement>) =>{
     setText(e.target.value);
   }
+
+  const onSearchTextChange = useCallback((text: string) => {
+  setSearchText(text);
+}, []);
+
 
   const handlePost = useCallback(async(e:FormEvent<HTMLFormElement>): Promise<void> =>{
     e.preventDefault();
@@ -168,6 +176,7 @@ function App() {
   // 下記はリファクタリング必須
   const handleSaveEdit = useCallback(
   async (): Promise<void> => {
+    console.log(editingId , editingText)
     if (!editingId || !editingText.trim()) {
       alert('内容を入力してください');
       return;
@@ -203,27 +212,36 @@ function App() {
   },
   []
 );
+// useMemoでの記述を推奨
+
+const getFilteredMessages = (): Message[] =>{
+  if(!searchText.trim()) return messages;
+
+  return messages.filter((message) =>{
+    message.text.toLowerCase().includes(searchText.toLowerCase())
+  });
+};
+
+const filteredMessages = getFilteredMessages();
 
   const messageItems = messages.map((message: Message) => (
     <div key={message.id}>
-      <Typography variant="subtitle2" sx={{mb:2, textAlign:'center'}}>
-        {messages.length}件のメッセージがあります
-      </Typography>
       <MessageItem 
             key={message.id}
             message={message}
             colors={colors}
             isEditing={editingId === message.id}
-            editText={editingId === message.id ? editingText : message.text}
+            editingText={editingId === message.id ? editingText : message.text}
             onEditTextChange={setEditingText}
             onStartEdit={handleStartEdit}
             onCancelEdit={handleCancelEdit}
             onSaveEdit={handleSaveEdit}
-            onDelete={handleDeleteMessage}
+            onDeleteMessage={handleDeleteMessage}
       />               
                       
       </div>
   ))
+
 
   if(isLoading){
     return (
@@ -260,6 +278,12 @@ function App() {
       onTextChange={handleTextChange}
       onSelectImage={handleSelectImage}
       onSetImage={setImage}
+      />
+
+      <SearchBar
+      searchText={searchText}
+      colors = {colors}
+      onSearchTextChange={onSearchTextChange}
       />
 
       <MessageList>{messageItems}</MessageList>
