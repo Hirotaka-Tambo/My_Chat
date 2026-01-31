@@ -232,6 +232,7 @@ const filteredMessages = getFilteredMessages();
             colors={colors}
             isEditing={editingId === message.id}
             editingText={editingId === message.id ? editingText : message.text}
+            searchText={searchText}
             onEditTextChange={setEditingText}
             onStartEdit={handleStartEdit}
             onCancelEdit={handleCancelEdit}

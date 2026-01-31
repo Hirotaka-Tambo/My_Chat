@@ -1,4 +1,6 @@
-import {Box} from `@mui/material`;
+import {
+    Box
+} from '@mui/material';
 
 
 type HighlightTextProps = {
@@ -16,5 +18,28 @@ export const HighlightText = ({text, searchText}: HighlightTextProps) => {
     const parts = text.split(regex);
     
 
-    return ();
+    return (
+    <>
+    {parts.map((part, index) =>
+        regex.test(part) ? (
+        <Box
+            key={index}
+            component="span"
+            sx={{
+                backgroundColor: '#fff59d',
+                color: '#000',
+                fontWeight: 'bold',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+            }}
+        >
+            {part}
+        </Box>
+        ) : (
+        part
+        )
+    )}
+    </>
+    )
 }

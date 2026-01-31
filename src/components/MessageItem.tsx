@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { HighlightText } from './HighlightText';
 import {Box,Button,Card,
     CardActions,
     CardContent,
@@ -21,6 +22,7 @@ type MessageItemProps = {
     colors: Colors;
     isEditing: boolean;
     editingText: string;
+    searchText: string;
     onEditTextChange: (text: string) => void;
     onStartEdit: (id : string, text : string) => void;
     onCancelEdit: () => void;
@@ -33,6 +35,7 @@ export const MessageItem = ({
     colors,
     isEditing,
     editingText,
+    searchText,
     onEditTextChange,
     onStartEdit,
     onCancelEdit,
@@ -109,7 +112,10 @@ return (
             mb: message.image ? 2 : 0,
             }}
         >
-            {message.text}
+            <HighlightText
+            text={message.text}
+            searchText={searchText}
+            />
             <Typography variant="caption" sx = {{ color: 'gray'}}>
                 {message.updatedAt !== message.createdAt && '(編集済み)'}
             </Typography>
